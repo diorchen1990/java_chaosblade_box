@@ -1,0 +1,41 @@
+// 响应式断点
+$breakpoints: (
+  'xs': 480px,
+  'sm': 768px,
+  'md': 992px,
+  'lg': 1200px,
+  'xl': 1920px
+);
+
+// 响应式混入
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media screen and (max-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  }
+}
+
+// 使用示例
+.case-list {
+  @include respond-to('md') {
+    .search-input {
+      width: 200px;
+    }
+    
+    .el-table {
+      font-size: 14px;
+    }
+  }
+  
+  @include respond-to('sm') {
+    .card-header {
+      flex-direction: column;
+      gap: 16px;
+      
+      .left {
+        width: 100%;
+      }
+    }
+  }
+} 
