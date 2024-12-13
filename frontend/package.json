@@ -1,0 +1,38 @@
+{
+  "name": "chaos-platform-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "serve": "vite preview",
+    "lint": "eslint src --ext .ts,.vue",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "vue": "^3.3.0",
+    "vue-router": "^4.2.0",
+    "pinia": "^2.1.0",
+    "element-plus": "^2.3.0",
+    "echarts": "^5.4.0",
+    "vue-echarts": "^6.5.0",
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@vitejs/plugin-vue": "^4.2.0",
+    "@vue/compiler-sfc": "^3.3.0",
+    "@vue/test-utils": "^2.3.0",
+    "@types/vue-router": "^4.2.0",
+    "@types/pinia": "^2.0.0",
+    "@types/element-plus": "^2.3.0",
+    "typescript": "^5.0.0",
+    "vite": "^4.3.0",
+    "vitest": "^0.32.0",
+    "vue-tsc": "^1.6.0",
+    "eslint": "^8.40.0",
+    "eslint-plugin-vue": "^9.11.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.0",
+    "@typescript-eslint/parser": "^5.59.0"
+  }
+} 

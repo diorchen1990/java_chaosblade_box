@@ -1,0 +1,26 @@
+groups:
+- name: chaos-platform
+  rules:
+  - alert: ExperimentFailureRate
+    expr: rate(chaos_experiments_total{result="failure"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High experiment failure rate"
+      
+  - alert: SystemHighCPU
+    expr: chaos_system_cpu > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage detected"
+      
+  - alert: ProbeDown
+    expr: chaos_probe_status == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Probe is down" 

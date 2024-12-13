@@ -1,0 +1,4 @@
+chaos-platform/
+├── frontend/           # 前端项目
+├── backend/            # 后端项目
+└── deploy/             # 部署相关配置 
