@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import DatabaseConfig from '@/views/settings/DatabaseConfig.vue'
+import Layout from '@/layouts/default.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -12,8 +14,14 @@ const routes: RouteRecordRaw[] = [
     path: '/cases',
     component: () => import('@/views/cases/Index.vue'),
     children: [
-      { path: 'list', component: () => import('@/views/cases/List.vue') },
-      { path: 'create', component: () => import('@/views/cases/Create.vue') },
+      { 
+        path: 'list',
+        component: () => import('@/views/cases/List.vue'),
+        props: route => ({
+          preloadEdit: () => import('@/views/cases/Edit.vue'),
+          preloadCreate: () => import('@/views/cases/Create.vue')
+        })
+      }
     ]
   },
   {
@@ -33,6 +41,21 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/probes',
     component: () => import('@/views/probes/Index.vue')
+  },
+  {
+    path: '/settings',
+    component: Layout,
+    children: [
+      {
+        path: 'database',
+        name: 'DatabaseConfig',
+        component: DatabaseConfig,
+        meta: {
+          title: '数据库配置',
+          requiresAuth: true
+        }
+      }
+    ]
   }
 ]
 

@@ -4,6 +4,7 @@ import com.chaos.platform.client.ChaosBladeCli;
 import com.chaos.platform.model.dto.ExperimentDTO;
 import com.chaos.platform.model.dto.ExperimentRequest;
 import com.chaos.platform.model.entity.Experiment;
+import com.chaos.platform.model.entity.ExperimentRecord;
 import com.chaos.platform.repository.ExperimentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,53 +14,66 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ExperimentService {
     
-    private final ChaosBladeCli chaosBladeCli;
     private final ExperimentRepository experimentRepository;
+    private final ChaosBladeCli chaosBladeCli;
     
     @Transactional
-    public ExperimentDTO createExperiment(ExperimentRequest request) {
-        Experiment experiment = new Experiment();
-        experiment.setName(request.getName());
-        experiment.setType(request.getType());
-        experiment.setTarget(request.getTarget());
-        experiment.setDescription(request.getDescription());
-        experiment.setStatus("CREATED");
-        experiment.setCreatedAt(LocalDateTime.now());
-        experiment.setUpdatedAt(LocalDateTime.now());
+    public ExperimentRecord createExperiment(ExperimentRequest request) {
+        // 1. 创建实验记录
+        ExperimentRecord record = new ExperimentRecord();
+        record.setName(request.getName());
+        record.setType(request.getType());
+        record.setParams(request.getParams());
+        record.setStatus("PREPARING");
+        record.setStartTime(LocalDateTime.now());
         
-        experiment = experimentRepository.save(experiment);
+        // 2. 保存记录
+        ExperimentRecord savedRecord = experimentRepository.save(record);
         
-        // 调用 ChaosBlade 执行实验
-        chaosBladeCli.runExperiment(experiment.getId(), request.getParameters());
-        
-        return convertToDTO(experiment);
-    }
-    
-    public ExperimentStatus getStatus(Long id) {
-        Experiment experiment = experimentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Experiment not found"));
-        return new ExperimentStatus(experiment.getId(), experiment.getStatus());
-    }
-    
-    @Transactional
-    public void stopExperiment(Long id) {
-        Experiment experiment = experimentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Experiment not found"));
+        try {
+            // 3. 执行 ChaosBlade 命令
+            String experimentId = chaosBladeCli.execute(buildCommand(request));
             
-        chaosBladeCli.stopExperiment(id);
-        experiment.setStatus("STOPPED");
-        experiment.setUpdatedAt(LocalDateTime.now());
-        experimentRepository.save(experiment);
+            // 4. 更新实验ID
+            savedRecord.setExperimentId(experimentId);
+            savedRecord.setStatus("RUNNING");
+            return experimentRepository.save(savedRecord);
+            
+        } catch (Exception e) {
+            // 5. 失败处理
+            savedRecord.setStatus("FAILED");
+            savedRecord.setResult("Error: " + e.getMessage());
+            experimentRepository.save(savedRecord);
+            throw e;
+        }
     }
     
-    private ExperimentDTO convertToDTO(Experiment experiment) {
-        ExperimentDTO dto = new ExperimentDTO();
-        dto.setId(experiment.getId());
-        dto.setName(experiment.getName());
-        dto.setType(experiment.getType());
-        dto.setStatus(experiment.getStatus());
-        dto.setTarget(experiment.getTarget());
-        dto.setDescription(experiment.getDescription());
-        return dto;
+    @Transactional
+    public void completeExperiment(String experimentId, String result) {
+        experimentRepository.findByExperimentId(experimentId)
+            .ifPresent(record -> {
+                record.setStatus("COMPLETED");
+                record.setResult(result);
+                record.setEndTime(LocalDateTime.now());
+                experimentRepository.save(record);
+            });
+    }
+    
+    public ExperimentRecord getExperiment(String experimentId) {
+        return experimentRepository.findByExperimentId(experimentId)
+            .orElseThrow(() -> new NotFoundException("Experiment not found"));
+    }
+    
+    public List<ExperimentRecord> getRunningExperiments() {
+        return experimentRepository.findByStatus("RUNNING");
+    }
+    
+    public Map<String, Long> getExperimentStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("total", experimentRepository.count());
+        stats.put("running", experimentRepository.countByStatus("RUNNING"));
+        stats.put("completed", experimentRepository.countByStatus("COMPLETED"));
+        stats.put("failed", experimentRepository.countByStatus("FAILED"));
+        return stats;
     }
 } 
