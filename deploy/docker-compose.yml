@@ -7,7 +7,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - chaos-network
       
@@ -24,43 +25,47 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - KAFKA_SERVERS=kafka:9092
     depends_on:
-      - mysql
-      - kafka
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - chaos-network
-      
-  mysql:
-    image: mysql:8
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=chaos_platform
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+  prometheus:
+    image: prom/prometheus:latest
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ./prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
     networks:
       - chaos-network
-      
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    environment:
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-    depends_on:
-      - zookeeper
-    networks:
-      - chaos-network
-      
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      - ZOOKEEPER_CLIENT_PORT=2181
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
     networks:
       - chaos-network
 
 volumes:
   mysql-data:
+  prometheus-data:
+  grafana-data:
 
 networks:
   chaos-network:

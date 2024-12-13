@@ -1,35 +1,30 @@
 # Build stage
-FROM maven:3.8-openjdk-11 as builder
+FROM maven:3.8-openjdk-11 AS builder
 
 WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
 COPY src src
-RUN mvn clean package -DskipTests
+RUN mvn package -DskipTests
 
 # Run stage
-FROM openjdk:11-jdk-slim
+FROM openjdk:11-jre-slim
 
 # 安装必要工具
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     curl \
-    bash \
     procps \
-    iproute2 && \
-    mkdir -p /opt/chaosblade && \
-    chmod 755 /opt/chaosblade && \
-    rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=builder /build/target/*.jar app.jar
 
-# 设置环境变量
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-ENV CHAOSBLADE_HOME=/opt/chaosblade
-ENV PATH="${CHAOSBLADE_HOME}:${PATH}"
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-EXPOSE 8080
+ENV JAVA_OPTS="-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xmx512m -Xms256m"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"] 

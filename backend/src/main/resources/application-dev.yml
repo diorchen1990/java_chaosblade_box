@@ -3,12 +3,24 @@ spring:
     url: jdbc:mysql://localhost:3306/chaos_platform?useSSL=false
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASSWORD:root}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      connection-test-query: SELECT 1
   
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.batch_size: 30
+        order_inserts: true
+        order_updates: true
+        
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -17,4 +29,10 @@ spring:
 logging:
   level:
     com.chaos.platform: DEBUG
-    org.springframework: INFO 
+    org.springframework: INFO
+    org.hibernate.SQL: DEBUG
+
+cache:
+  type: caffeine
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=3600s
